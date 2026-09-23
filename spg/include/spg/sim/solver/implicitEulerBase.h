@@ -22,7 +22,7 @@ protected:
     void getSystemStiffnessMatrix(SparseMatrix &K) const;
     void getSystemMassMatrix(SparseMatrix &M) const;
     void solveLinearSystem(const SparseMatrix &A, const VectorX &b, VectorX &x) const;
-
+    void setSystemPositions(const VectorX &x);
 protected:
     const Real m_cgThreshold{1e-5};
     const int m_cgMaxIterations{300};

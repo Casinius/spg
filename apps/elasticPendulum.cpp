@@ -24,6 +24,7 @@ int main()
     solver.setDt(dt);
     float time = 0;
     for (int i = 0; i < 100; ++i) {
+        
         solver.step();
         time += dt;
         std::cout << "Anchored particle position at " << time

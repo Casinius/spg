@@ -22,6 +22,16 @@ void ImplicitEulerBase::getSystemPositions(VectorX &pos) const
         m_objects);
 }
 
+void ImplicitEulerBase::setSystemPositions(const VectorX &x) {
+    int offset = 0;
+    apply_each([&](auto &objs) {
+        for (auto &obj : objs) {
+            obj.setPositions(x,offset);
+            offset += obj.nDOF();
+        }
+    }, m_objects);
+}
+
 void ImplicitEulerBase::getSystemVelocities(VectorX &vel) const
 {
     int accumulatedNDOF = 0;
