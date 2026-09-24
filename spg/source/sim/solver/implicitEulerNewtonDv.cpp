@@ -5,11 +5,14 @@
 #include <spg/utils/functionalUtilities.h>
 
 #include <iostream>
-
+#include "pcg.hpp"
+#include "spg/types.h"
 namespace spg::solver
 {
 void ImplicitEulerNewtonDv::step()
 {
+    constexpr int kMaxKiter = 30;
+
     if (m_verbosity == Verbosity::Performance) {
         std::cout << "NewtonDv step\n";
     }
@@ -27,24 +30,28 @@ void ImplicitEulerNewtonDv::step()
         },
         m_objects);
     const int totalNDOF{accumulatedNDOF};
+    SparseMatrix K(totalNDOF, totalNDOF);
+    SparseMatrix M(totalNDOF, totalNDOF);
+    VectorX x0(totalNDOF);
+    VectorX v0(totalNDOF);
+    VectorX f(totalNDOF);
+    
 
     for (int s = 0; s < m_nsubsteps; ++s) {
         // Store state backup
-        VectorX x0(totalNDOF);
-        VectorX v0(totalNDOF);
+
         getSystemPositions(x0);
         getSystemVelocities(v0);
 
         // Compute mass matrix in initial state to prevent simulations with rigid bodies to explode
-        SparseMatrix M(totalNDOF, totalNDOF);
+
         getSystemMassMatrix(M);
 
         // Set initial guess as inertial position
         integrateObjectsVelocities(dt);
 
         // Compute forces and stiffness matrix
-        VectorX f(totalNDOF);
-        SparseMatrix K(totalNDOF, totalNDOF);
+
         getSystemForce(f);
         getSystemStiffnessMatrix(K);
 
@@ -52,10 +59,33 @@ void ImplicitEulerNewtonDv::step()
         const SparseMatrix LHS = M - (dt * dt) * K;
         const VectorX RHS = dt * f;
 
-        // Solve problem to obtain dv
-        VectorX dv;
-        solveLinearSystem(LHS, RHS, dv);
+        auto Aop = krylov_bridge::makeOperator<Real>(LHS);
+        auto Mop = krylov_bridge::makeJacobi<Real>(LHS);
+        pk::Params<Real> p;
 
+        p.rtol = Real(1e-6);
+        p.atol = Real(1e-12);
+
+        p.verbose = false;
+
+        // Solve problem to obtain dv
+        // VectorX dv;
+        // solveLinearSystem(LHS, RHS, dv);
+        VectorX dv = VectorX::Zero(RHS.size());
+        pk::Result<Real> r;
+
+        // M - dt^2 K 通常 SPD（dt 足够小），若你担心 K 非对称/大 dt，用 BiCGSTAB
+        if (true) {
+            r = pk::pcg<Real>(Aop, RHS, dv, Mop, p);
+        } else {
+            r = pk::bicgstab<Real>(Aop, RHS, dv, Mop, p);
+        }
+
+        // 兜底：Krylov 失败/发散 → 退回原直接法，保证帧率不崩
+        if (!r.converged) {
+            dv.setZero();
+            solveLinearSystem(LHS, RHS, dv);
+        }
         // Update objects state
         setObjectsPositions(x0);
         setObjectsVelocities(v0 + dv);
