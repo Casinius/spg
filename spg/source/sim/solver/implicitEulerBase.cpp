@@ -99,6 +99,22 @@ void ImplicitEulerBase::updateObjectsPositionsFromDx(const VectorX &dx)
         m_objects);
 }
 
+void ImplicitEulerBase::solveLinearSystemLLT(
+    const SparseMatrix& A, const VectorX& b, VectorX& x) const
+{
+    Eigen::SimplicialLLT<SparseMatrix> llt;
+    llt.compute(A);
+    if (llt.info() != Eigen::Success) {
+        std::cerr << "LLT failed, falling back to CG\n";
+        // 回退到 CG
+        Eigen::ConjugateGradient<SparseMatrix, Eigen::Lower | Eigen::Upper> cg;
+        cg.compute(A);
+        x = cg.solve(b);
+        return;
+    }
+    x = llt.solve(b);
+}
+
 void ImplicitEulerBase::getSystemForce(VectorX &f) const
 {
     int accumulatedNDOF = 0;

@@ -22,8 +22,9 @@ protected:
     void getSystemStiffnessMatrix(SparseMatrix &K) const;
     void getSystemMassMatrix(SparseMatrix &M) const;
     void solveLinearSystem(const SparseMatrix &A, const VectorX &b, VectorX &x) const;
-
-protected:
+    void solveLinearSystemLLT(
+    const SparseMatrix& A, const VectorX& b, VectorX& x) const;
+    protected:
     const Real m_cgThreshold{1e-5};
     const int m_cgMaxIterations{300};
     mutable std::vector<Triplet> m_tripletHolder;  // Dynamic holder to avoid reallocation across steps
