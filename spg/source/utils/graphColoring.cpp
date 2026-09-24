@@ -1,4 +1,5 @@
 #include <spg/utils/graphColoring.h>
+#include <execution>
 #include <stdexcept>
 
 #include <algorithm>
@@ -30,9 +31,9 @@ std::vector<int> Graph::greedyColoring()
 
     // Assign colors to remaining nodes
     for (int n = 1; n < nbNodes; n++) {
-        std::fill(colorIsAvailable.begin(), colorIsAvailable.end(), static_cast<char>(1));
+        std::fill(std::execution::par,colorIsAvailable.begin(), colorIsAvailable.end(), static_cast<char>(1));
         // Flag unavailable colors
-        std::for_each(m_adjacency[n].begin(), m_adjacency[n].end(), [&colorIsAvailable, &nodeColors](const int &n) {
+        std::for_each(std::execution::par,m_adjacency[n].begin(), m_adjacency[n].end(), [&colorIsAvailable, &nodeColors](const int &n) {
             if (nodeColors[n] != -1) {
                 colorIsAvailable[nodeColors[n]] = 0;
             }
