@@ -5,7 +5,8 @@
 #include <spg/utils/functionalUtilities.h>
 
 #include <iostream>
-
+#include "pcg.hpp"
+#include "spg/types.h"
 namespace spg::solver
 {
 void ImplicitEulerNewtonDx::step()
@@ -51,9 +52,32 @@ void ImplicitEulerNewtonDx::step()
         const SparseMatrix LHS = (invdt * invdt) * M - K;
         const VectorX RHS = f;
 
+        auto Aop = krylov_bridge::makeOperator<Real>(LHS);
+        auto Mop = krylov_bridge::makeJacobi<Real>(LHS);
+        pk::Params<Real> p;
+
+        p.rtol = Real(1e-6);
+        p.atol = Real(1e-12);
+
+        p.verbose = false;
+        VectorX dx = VectorX::Zero(RHS.size());
+        pk::Result<Real> r;
+
+        // M - dt^2 K 通常 SPD（dt 足够小），若你担心 K 非对称/大 dt，用 BiCGSTAB
+        if (true) {
+            r = pk::pcg<Real>(Aop, RHS, dx, Mop, p);
+        } else {
+            r = pk::bicgstab<Real>(Aop, RHS, dx, Mop, p);
+        }
+
+        // 兜底：Krylov 失败/发散 → 退回原直接法，保证帧率不崩
+        if (!r.converged) {
+            dx.setZero();
+            solveLinearSystem(LHS, RHS, dx);
+        }
         // Solve problem to obtain dx
-        VectorX dx;
-        solveLinearSystem(LHS, RHS, dx);
+        // VectorX dx;
+        // solveLinearSystem(LHS, RHS, dx);
 
         // Update objects state
         integrateObjectsVelocitiesFromDx(dx, x0, invdt);
