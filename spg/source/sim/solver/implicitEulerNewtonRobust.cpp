@@ -5,7 +5,7 @@
 #include <spg/utils/functionalUtilities.h>
 
 #include <iostream>
-
+#include "pcg.hpp"
 namespace spg::solver
 {
 void ImplicitEulerNewtonRobust::step()
@@ -65,9 +65,34 @@ void ImplicitEulerNewtonRobust::step()
             const VectorX RHS = dt * f - M * (vi - v0) /*- dt * rayleightAlpha * M * vi*/;
             const Real initialResidual = RHS.norm();
 
-            // Solve problem to obtain dv
-            VectorX dv;
-            solveLinearSystem(LHS, RHS, dv);
+            // // Solve problem to obtain dv
+            // VectorX dv;
+            // solveLinearSystem(LHS, RHS, dv);
+
+            auto Aop = krylov_bridge::makeOperator<Real>(LHS);
+            auto Mop = krylov_bridge::makeJacobi<Real>(LHS);
+            pk::Params<Real> p;
+
+            p.rtol = Real(1e-6);
+            p.atol = Real(1e-12);
+
+            p.verbose = false;
+
+            VectorX dv = VectorX::Zero(RHS.size());
+            pk::Result<Real> r;
+
+            // M - dt^2 K 通常 SPD（dt 足够小），若你担心 K 非对称/大 dt，用 BiCGSTAB
+            if (true) {
+                r = pk::pcg<Real>(Aop, RHS, dv, Mop, p);
+            } else {
+                r = pk::bicgstab<Real>(Aop, RHS, dv, Mop, p);
+            }
+
+            // 兜底：Krylov 失败/发散 → 退回原直接法，保证帧率不崩
+            if (!r.converged) {
+                dv.setZero();
+                solveLinearSystem(LHS, RHS, dv);
+            }
 
             // Update objects using line search
             stepResidual = initialResidual;
