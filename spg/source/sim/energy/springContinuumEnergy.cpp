@@ -5,7 +5,8 @@ namespace spg
 {
 namespace
 {
-auto l_springConstraint = [](const SpringContinuumEnergy *energy, const int i, const ParticleGroup &pGroup, auto &dC) {
+template<class T>
+auto l_springConstraint(const SpringContinuumEnergy *energy, const int i, const ParticleGroup &pGroup, T &dC) {
     const auto &x0{pGroup.positions()[energy->stencils()[i][0]]};
     const auto &x1{pGroup.positions()[energy->stencils()[i][1]]};
     using RealT = std::decay_t<decltype(dC[0])>;

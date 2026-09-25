@@ -125,6 +125,7 @@ public:
         // treating the linear with an "asDiagonal" vector. Profile and see if worth the change
         MatrixT<Real, TstencilSize * s_nDOFs> W;
         W.setZero();
+        #pragma omp parallel for
         for (int s = 0; s < TstencilSize; ++s) {
             const auto w = obj.invMasses()[m_stencils[i][s]];
             for (int m = 0; m < 3; ++m) {
@@ -160,6 +161,7 @@ public:
         // the linear with an asdiagonal matrix. Profile
         MatrixT<Real, TstencilSize * s_nDOFs> W;
         W.setZero();
+        #pragma omp parallel for
         for (int s = 0; s < TstencilSize; ++s) {
             const auto w = obj.invMasses()[m_stencils[i][s]];
             for (int m = 0; m < 3; ++m) {

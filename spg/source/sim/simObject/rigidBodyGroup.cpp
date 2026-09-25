@@ -22,6 +22,7 @@ namespace spg
 void RigidBodyGroup::getPositions(VectorX &pos, int offsetIndex) const
 {
     const int nbodies = size();
+    #pragma omp for
     for (int bodyIdx = 0; bodyIdx < nbodies; ++bodyIdx) {
         const int startOffset = bodyIdx * 6 + offsetIndex;
         pos.segment<3>(startOffset) = m_x[bodyIdx];
@@ -32,6 +33,7 @@ void RigidBodyGroup::getPositions(VectorX &pos, int offsetIndex) const
 void RigidBodyGroup::getVelocities(VectorX &vel, int offsetIndex) const
 {
     const int nbodies = size();
+    #pragma omp for
     for (int bodyIdx = 0; bodyIdx < nbodies; ++bodyIdx) {
         const int startOffset = bodyIdx * 6 + offsetIndex;
         vel.segment<3>(startOffset) = m_v[bodyIdx];
@@ -42,6 +44,7 @@ void RigidBodyGroup::getVelocities(VectorX &vel, int offsetIndex) const
 void RigidBodyGroup::setPositions(const VectorX &pos, int offsetIndex)
 {
     const int nbodies = size();
+    #pragma omp for
     for (int bodyIdx = 0; bodyIdx < nbodies; ++bodyIdx) {
         const int startOffset = bodyIdx * 6 + offsetIndex;
         m_x[bodyIdx] = pos.segment<3>(startOffset);
@@ -54,6 +57,7 @@ void RigidBodyGroup::setPositions(const VectorX &pos, int offsetIndex)
 void RigidBodyGroup::setVelocities(const VectorX &vel, int offsetIndex)
 {
     const int nbodies = size();
+    #pragma omp for
     for (int bodyIdx = 0; bodyIdx < nbodies; ++bodyIdx) {
         const int startOffset = bodyIdx * 6 + offsetIndex;
         m_v[bodyIdx] = vel.segment<3>(startOffset);
@@ -79,6 +83,7 @@ void RigidBodyGroup::updateElementPositionFromDx(const Vector<6> &dx, int elemen
 void RigidBodyGroup::updatePositionsFromDx(const VectorX &dx, int offsetIndex)
 {
     const int nbodies = size();
+    #pragma omp for
     for (int bodyIdx = 0; bodyIdx < nbodies; ++bodyIdx) {
         const int startOffset = bodyIdx * 6 + offsetIndex;
         // Linear part
@@ -98,6 +103,7 @@ void RigidBodyGroup::updatePositionsFromDx(const VectorX &dx, int offsetIndex)
 void RigidBodyGroup::integrateVelocities(Real dt)
 {
     const int nbodies = size();
+    #pragma omp for
     for (int bodyIdx = 0; bodyIdx < nbodies; ++bodyIdx) {
         // Linear part
         m_x[bodyIdx] += m_v[bodyIdx] * dt;
@@ -116,6 +122,7 @@ void RigidBodyGroup::integrateVelocities(Real dt)
 void RigidBodyGroup::computeIntegratedVelocities(const VectorX &oldPos, int offsetIndex, Real invdt)
 {
     const int nbodies = size();
+    #pragma omp for
     for (int bodyIdx = 0; bodyIdx < nbodies; ++bodyIdx) {
         const int startOffset = bodyIdx * 6 + offsetIndex;
         // Linear part
@@ -176,12 +183,14 @@ void RigidBodyGroup::removeEnergy(std::shared_ptr<EnergyT> energy)
 void RigidBodyGroup::reset()
 {
     m_x = m_xInitial;
+    #pragma omp for
     for (auto &v : m_v) {
         v.setZero();
     }
     m_theta = m_thetaInitial;
     updateRotationMatrices();
     updateInertias();
+    #pragma omp for
     for (auto &omega : m_omega) {
         omega.setZero();
     }
@@ -189,6 +198,7 @@ void RigidBodyGroup::reset()
 
 void RigidBodyGroup::scaleMasses(const Real scaleFactor)
 {
+    #pragma omp for
     for (int i = 0; i < static_cast<int>(m_m.size()); ++i) {
         if (m_m[i] != 0) {
             m_m[i] *= scaleFactor;
@@ -207,6 +217,7 @@ void RigidBodyGroup::updateInertia(const int i)
 
 void RigidBodyGroup::updateInertias()
 {
+    #pragma omp for
     for (int i = 0; i < size(); ++i) {
         updateInertia(i);
     }
